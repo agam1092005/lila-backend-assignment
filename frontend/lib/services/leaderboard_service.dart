@@ -23,12 +23,11 @@ class LeaderboardService {
       );
 
       // Parse the response
-      final payload = result.payload;
-      if (payload == null || payload.isEmpty) {
+      if (result.payload == null || result.payload!.isEmpty) {
         return [];
       }
       
-      final responseData = json.decode(payload);
+      final responseData = json.decode(result.payload!);
       final entries = responseData['entries'] as List<dynamic>? ?? [];
 
       // Convert to LeaderboardEntry objects

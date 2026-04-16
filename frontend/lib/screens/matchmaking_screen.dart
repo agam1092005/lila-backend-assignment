@@ -33,7 +33,7 @@ class _MatchmakingScreenState extends State<MatchmakingScreen> {
     // Extract host, port, and SSL from Nakama client
     const nakamaServerUrl = String.fromEnvironment(
       'NAKAMA_SERVER_URL',
-      defaultValue: 'localhost',
+      defaultValue: '152.67.10.16',
     );
     const nakamaPort = int.fromEnvironment('NAKAMA_PORT', defaultValue: 7350);
     const nakamaSsl = bool.fromEnvironment('NAKAMA_SSL', defaultValue: false);

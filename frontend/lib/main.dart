@@ -17,15 +17,15 @@ void main() async {
   // Get Nakama server URL from environment variable or use default
   const nakamaServerUrl = String.fromEnvironment(
     'NAKAMA_SERVER_URL',
-    defaultValue: 'localhost',
+    defaultValue: '152.67.10.16',
   );
   const nakamaPort = int.fromEnvironment('NAKAMA_PORT', defaultValue: 7350);
   const nakamaSsl = bool.fromEnvironment('NAKAMA_SSL', defaultValue: false);
   
   // Initialize Nakama client
+  // Note: nakama package 1.3.0 uses host:port format
   final nakamaClient = getNakamaClient(
-    host: nakamaServerUrl,
-    port: nakamaPort,
+    host: '$nakamaServerUrl:$nakamaPort',
     ssl: nakamaSsl,
   );
   

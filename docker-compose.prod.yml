@@ -1,0 +1,100 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:12-alpine
+    container_name: nakama-postgres-prod
+    environment:
+      POSTGRES_DB: nakama
+      POSTGRES_USER: nakama
+      POSTGRES_PASSWORD_FILE: /run/secrets/db_password
+    secrets:
+      - db_password
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - nakama-network
+    restart: always
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U nakama"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 1G
+        reservations:
+          cpus: '0.5'
+          memory: 512M
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  nakama:
+    image: heroiclabs/nakama:3.17.1
+    container_name: nakama-server-prod
+    depends_on:
+      postgres:
+        condition: service_healthy
+    secrets:
+      - db_password
+      - session_key
+    ports:
+      - "7350:7350"  # gRPC
+      - "7351:7351"  # HTTP
+    volumes:
+      - ./backend:/nakama/data/modules:ro
+    networks:
+      - nakama-network
+    restart: always
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:7351/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 2G
+        reservations:
+          cpus: '1.0'
+          memory: 1G
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "5"
+    entrypoint: >
+      /bin/sh -c "
+      DB_PASSWORD=$$(cat /run/secrets/db_password) &&
+      SESSION_KEY=$$(cat /run/secrets/session_key) &&
+      export PGPASSWORD=$$DB_PASSWORD &&
+      /nakama/nakama migrate up --database.address nakama@postgres:5432/nakama &&
+      /nakama/nakama
+      --database.address nakama@postgres:5432/nakama
+      --logger.level INFO
+      --session.token_expiry_sec 7200
+      --socket.server_key $$SESSION_KEY
+      --runtime.path /nakama/data/modules
+      "
+
+secrets:
+  db_password:
+    file: ./secrets/db_password.txt
+  session_key:
+    file: ./secrets/session_key.txt
+
+volumes:
+  postgres_data:
+    driver: local
+
+networks:
+  nakama-network:
+    driver: bridge

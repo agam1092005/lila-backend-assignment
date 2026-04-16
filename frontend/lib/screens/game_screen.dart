@@ -47,7 +47,7 @@ class _GameScreenState extends State<GameScreen> {
     // Extract host, port, and SSL from environment
     const nakamaServerUrl = String.fromEnvironment(
       'NAKAMA_SERVER_URL',
-      defaultValue: 'localhost',
+      defaultValue: '152.67.10.16',
     );
     const nakamaPort = int.fromEnvironment('NAKAMA_PORT', defaultValue: 7350);
     const nakamaSsl = bool.fromEnvironment('NAKAMA_SSL', defaultValue: false);
@@ -141,7 +141,7 @@ class _GameScreenState extends State<GameScreen> {
       // Initialize move controller after connection
       // We need to create a WebSocket client for the move controller
       final socket = NakamaWebsocketClient.init(
-        host: const String.fromEnvironment('NAKAMA_SERVER_URL', defaultValue: 'localhost'),
+        host: const String.fromEnvironment('NAKAMA_SERVER_URL', defaultValue: '152.67.10.16'),
         port: const int.fromEnvironment('NAKAMA_PORT', defaultValue: 7350),
         ssl: const bool.fromEnvironment('NAKAMA_SSL', defaultValue: false),
         token: session.token,
