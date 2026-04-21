@@ -71,10 +71,12 @@ class AuthService {
     try {
       // Get or generate device ID
       final deviceId = await _getOrCreateDeviceId();
+      print('[AUTH] Device ID: $deviceId');
       
       // Try to restore session from storage
       final restoredSession = await _restoreSession();
       if (restoredSession != null && !restoredSession.isExpired) {
+        print('[AUTH] Restored session from storage');
         _session = restoredSession;
         _updateStatus(AuthStatus.authenticated);
         _startSessionMonitoring();
@@ -83,7 +85,9 @@ class AuthService {
       }
 
       // Authenticate with device ID
+      print('[AUTH] Authenticating with Nakama...');
       _session = await _client.authenticateDevice(deviceId: deviceId);
+      print('[AUTH] Authentication successful');
       
       // Store session token securely
       await _storeSession(_session!);
@@ -94,6 +98,8 @@ class AuthService {
       
       return _session!;
     } catch (e) {
+      print('[AUTH] Authentication error: $e');
+      print('[AUTH] Error type: ${e.runtimeType}');
       _updateStatus(AuthStatus.error);
       
       // Determine error message based on error type
@@ -107,6 +113,8 @@ class AuthService {
       } else {
         errorMessage = 'Authentication failed: ${e.toString()}';
       }
+      
+      print('[AUTH] Error message: $errorMessage');
       
       // Implement exponential backoff retry
       if (_retryAttempt < _retryDelays.length) {

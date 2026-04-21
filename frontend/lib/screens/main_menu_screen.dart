@@ -23,6 +23,20 @@ class MainMenuScreen extends StatefulWidget {
 
 class _MainMenuScreenState extends State<MainMenuScreen> {
   @override
+  void initState() {
+    super.initState();
+    // Trigger authentication if not already authenticated
+    if (widget.authService.status == AuthStatus.unauthenticated) {
+      print('[MENU] Triggering authentication...');
+      widget.authService.authenticate().then((_) {
+        print('[MENU] Authentication completed');
+      }).catchError((e) {
+        print('[MENU] Authentication error: $e');
+      });
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
     final isMobile = ResponsiveHelper.isMobile(screenWidth);

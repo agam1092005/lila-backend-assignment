@@ -22,12 +22,13 @@ class LeaderboardService {
         payload: '',
       );
 
-      // Parse the response
-      if (result.payload == null || result.payload!.isEmpty) {
+      // Parse the response - result is an Rpc object with payload as a String
+      final payload = result as String;
+      if (payload.isEmpty) {
         return [];
       }
       
-      final responseData = json.decode(result.payload!);
+      final responseData = json.decode(payload);
       final entries = responseData['entries'] as List<dynamic>? ?? [];
 
       // Convert to LeaderboardEntry objects

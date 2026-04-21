@@ -63,10 +63,11 @@ func (m *TicTacToeMatch) MatchInit(ctx context.Context, logger runtime.Logger, d
 	// Set timer start time to nil initially (will be set when both players join)
 	state.TimerStartTime = nil
 
-	// Tick rate: 1 tick per second for timer mode, 0 for classic mode
-	tickRate := 0
+	// Tick rate: 1 tick per second for both modes
+	// Nakama requires tick rate to be between 1 and 60
+	tickRate := 1
 	if gameMode == "timer" {
-		tickRate = 1 // 1 tick per second
+		tickRate = 1 // 1 tick per second for timer updates
 	}
 
 	logger.Info("Match initialized with game mode: %s", gameMode)

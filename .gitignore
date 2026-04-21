@@ -124,3 +124,25 @@ out/
 *.sqlite
 *.sqlite3
 postgres_data/
+
+# Deployment and configuration files
+DEPLOYMENT.md
+DEPLOYMENT_STATUS.md
+FINAL_ISSUE.md
+SUBMISSION_CHECKLIST.md
+Dockerfile.frontend
+nginx-fix.conf
+
+# Build and deployment scripts
+build-backend-linux.sh
+build-on-server.sh
+deploy-plugin.sh
+
+# SSH keys
+ssh-key-*.key
+
+# Frontend specific
+frontend/.firebase/
+frontend/node_modules/
+frontend/package-lock.json
+frontend/package.json

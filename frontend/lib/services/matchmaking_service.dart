@@ -112,20 +112,28 @@ class MatchmakingService {
 
     try {
       // Create socket connection with session token
+      print('[MATCHMAKING] Creating WebSocket connection to $_host:$_port (SSL: $_ssl)');
+      print('[MATCHMAKING] Session token: ${session.token.substring(0, 20)}...');
+      
       _socket = NakamaWebsocketClient.init(
         host: _host,
         port: _port,
         ssl: _ssl,
         token: session.token,
       );
+      
+      print('[MATCHMAKING] WebSocket client created');
 
       // Listen for matchmaker matched events
       _matchmakerSubscription = _socket!.onMatchmakerMatched.listen(
         _handleMatchFound,
         onError: _handleMatchmakingError,
       );
+      
+      print('[MATCHMAKING] Matchmaker listener registered');
 
       // Add player to matchmaking queue with game mode property
+      print('[MATCHMAKING] Adding to matchmaker queue with game mode: ${gameMode.toServerString()}');
       final ticket = await _socket!.addMatchmaker(
         minCount: 2,
         maxCount: 2,
@@ -136,6 +144,7 @@ class MatchmakingService {
       );
 
       _currentTicket = ticket.ticket;
+      print('[MATCHMAKING] Added to matchmaker with ticket: $_currentTicket');
 
       // Start timeout timer
       _startTimeoutTimer();
@@ -244,6 +253,7 @@ class MatchmakingService {
 
   /// Handle matchmaking error
   void _handleMatchmakingError(dynamic error) {
+    print('[MATCHMAKING] Error occurred: $error');
     _updateStatus(MatchmakingStatus.error);
     
     final matchmakingError = MatchmakingError(

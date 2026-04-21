@@ -35,7 +35,7 @@ class _MatchmakingScreenState extends State<MatchmakingScreen> {
       'NAKAMA_SERVER_URL',
       defaultValue: '152.67.10.16',
     );
-    const nakamaPort = int.fromEnvironment('NAKAMA_PORT', defaultValue: 7350);
+    const nakamaPort = int.fromEnvironment('NAKAMA_PORT', defaultValue: 7351);
     const nakamaSsl = bool.fromEnvironment('NAKAMA_SSL', defaultValue: false);
     
     _matchmakingService = MatchmakingService(

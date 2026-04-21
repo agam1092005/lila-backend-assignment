@@ -10,45 +10,30 @@ import 'package:frontend/screens/leaderboard_screen.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   
-  // Initialize theme manager and load saved theme
-  final themeManager = ThemeManager();
-  await themeManager.loadTheme();
-  
-  // Get Nakama server URL from environment variable or use default
-  const nakamaServerUrl = String.fromEnvironment(
-    'NAKAMA_SERVER_URL',
-    defaultValue: '152.67.10.16',
-  );
-  const nakamaPort = int.fromEnvironment('NAKAMA_PORT', defaultValue: 7350);
-  const nakamaSsl = bool.fromEnvironment('NAKAMA_SSL', defaultValue: false);
-  
-  // Initialize Nakama client
-  // Note: nakama package 1.3.0 uses host:port format
-  final nakamaClient = getNakamaClient(
-    host: '$nakamaServerUrl:$nakamaPort',
-    ssl: nakamaSsl,
-  );
-  
-  // Initialize auth service
-  final authService = AuthService(nakamaClient);
-  
-  runApp(MyApp(
-    themeManager: themeManager,
-    authService: authService,
-    nakamaClient: nakamaClient,
-  ));
+  try {
+    print('[MAIN] Starting app initialization...');
+    
+    // Initialize theme manager and load saved theme
+    final themeManager = ThemeManager();
+    await themeManager.loadTheme();
+    print('[MAIN] Theme manager initialized');
+    
+    runApp(MyApp(
+      themeManager: themeManager,
+    ));
+  } catch (e) {
+    print('[MAIN] FATAL ERROR: $e');
+    print('[MAIN] Stack trace: ${StackTrace.current}');
+    rethrow;
+  }
 }
 
 class MyApp extends StatefulWidget {
   final ThemeManager themeManager;
-  final AuthService authService;
-  final NakamaBaseClient nakamaClient;
 
   const MyApp({
     super.key,
     required this.themeManager,
-    required this.authService,
-    required this.nakamaClient,
   });
 
   @override
@@ -56,28 +41,54 @@ class MyApp extends StatefulWidget {
 }
 
 class _MyAppState extends State<MyApp> {
-  bool _isAuthenticating = true;
-  String? _authError;
+  late AuthService _authService;
+  late NakamaBaseClient _nakamaClient;
+  bool _initialized = false;
+  String? _initError;
 
   @override
   void initState() {
     super.initState();
-    _authenticate();
+    _initializeNakama();
   }
 
-  Future<void> _authenticate() async {
+  Future<void> _initializeNakama() async {
     try {
-      await widget.authService.authenticate();
+      print('[APP] Initializing Nakama...');
+      
+      // Use empty host to make requests to the same server (nginx will proxy /v2/* to Nakama)
+      const nakamaServerUrl = '';
+      const nakamaSsl = false;
+      const nakamaHttpPort = 80; // Use default port since we're on same origin
+      // Server key is configured on Nakama server side
+      const nakamaServerKey = 'defaultkey';
+      
+      print('[APP] Nakama config - Using same-origin requests (nginx proxy)');
+      
+      _nakamaClient = getNakamaClient(
+        host: nakamaServerUrl,
+        httpPort: nakamaHttpPort,
+        ssl: nakamaSsl,
+        serverKey: nakamaServerKey,
+      );
+      print('[APP] Nakama client created successfully');
+      
+      // Initialize auth service
+      _authService = AuthService(_nakamaClient);
+      print('[APP] Auth service initialized');
+      
       if (mounted) {
         setState(() {
-          _isAuthenticating = false;
+          _initialized = true;
         });
       }
     } catch (e) {
+      print('[APP] Error initializing Nakama: $e');
+      print('[APP] Stack trace: $e');
       if (mounted) {
         setState(() {
-          _isAuthenticating = false;
-          _authError = e.toString();
+          _initialized = true;
+          _initError = e.toString();
         });
       }
     }
@@ -91,48 +102,45 @@ class _MyAppState extends State<MyApp> {
         return MaterialApp(
           title: 'Tic-Tac-Toe',
           theme: widget.themeManager.currentTheme,
-          routes: {
-            '/': (context) => _buildHome(),
+          home: _buildHome(),
+          routes: _initialized && _initError == null ? {
             '/matchmaking': (context) => MatchmakingScreen(
-                  authService: widget.authService,
-                  nakamaClient: widget.nakamaClient,
+                  authService: _authService,
+                  nakamaClient: _nakamaClient,
                   themeManager: widget.themeManager,
                 ),
             '/game': (context) => GameScreen(
-                  authService: widget.authService,
-                  nakamaClient: widget.nakamaClient,
+                  authService: _authService,
+                  nakamaClient: _nakamaClient,
                   themeManager: widget.themeManager,
                 ),
             '/leaderboard': (context) => LeaderboardScreen(
-                  nakamaClient: widget.nakamaClient,
+                  nakamaClient: _nakamaClient,
                   themeManager: widget.themeManager,
                 ),
-          },
+          } : {},
         );
       },
     );
   }
 
   Widget _buildHome() {
-    if (_isAuthenticating) {
-      return Scaffold(
+    if (!_initialized) {
+      return const Scaffold(
         body: Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const CircularProgressIndicator(),
-              const SizedBox(height: 16),
-              Text(
-                'Connecting to server...',
-                style: Theme.of(context).textTheme.titleMedium,
-              ),
+              CircularProgressIndicator(),
+              SizedBox(height: 16),
+              Text('Initializing...'),
             ],
           ),
         ),
       );
     }
 
-    if (_authError != null) {
+    if (_initError != null) {
       return Scaffold(
         body: Center(
           child: Padding(
@@ -147,12 +155,12 @@ class _MyAppState extends State<MyApp> {
                 ),
                 const SizedBox(height: 16),
                 Text(
-                  'Authentication Failed',
+                  'Initialization Failed',
                   style: Theme.of(context).textTheme.headlineSmall,
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  _authError!,
+                  _initError!,
                   textAlign: TextAlign.center,
                   style: Theme.of(context).textTheme.bodyMedium,
                 ),
@@ -160,10 +168,10 @@ class _MyAppState extends State<MyApp> {
                 ElevatedButton(
                   onPressed: () {
                     setState(() {
-                      _isAuthenticating = true;
-                      _authError = null;
+                      _initialized = false;
+                      _initError = null;
                     });
-                    _authenticate();
+                    _initializeNakama();
                   },
                   child: const Text('Retry'),
                 ),
@@ -176,14 +184,16 @@ class _MyAppState extends State<MyApp> {
 
     return MainMenuScreen(
       themeManager: widget.themeManager,
-      authService: widget.authService,
-      nakamaClient: widget.nakamaClient,
+      authService: _authService,
+      nakamaClient: _nakamaClient,
     );
   }
 
   @override
   void dispose() {
-    widget.authService.dispose();
+    if (_initialized && _initError == null) {
+      _authService.dispose();
+    }
     super.dispose();
   }
 }
